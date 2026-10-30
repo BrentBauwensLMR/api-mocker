@@ -19,7 +19,7 @@ export class MockServer implements ServerInterface {
      * @param path
      * @returns
      */
-    get(path: string): RouteBuilderInterface {
+    get<Path extends string>(path: Path): RouteBuilderInterface<Path> {
         return this.addRoute("GET", path);
     }
 
@@ -28,7 +28,7 @@ export class MockServer implements ServerInterface {
      * @param path
      * @returns
      */
-    post(path: string): RouteBuilderInterface {
+    post<Path extends string>(path: Path): RouteBuilderInterface<Path> {
         return this.addRoute("POST", path);
     }
 
@@ -37,7 +37,7 @@ export class MockServer implements ServerInterface {
      * @param path
      * @returns
      */
-    put(path: string): RouteBuilderInterface {
+    put<Path extends string>(path: Path): RouteBuilderInterface<Path> {
         return this.addRoute("PUT", path);
     }
 
@@ -46,7 +46,7 @@ export class MockServer implements ServerInterface {
      * @param path
      * @returns
      */
-    delete(path: string): RouteBuilderInterface {
+    delete<Path extends string>(path: Path): RouteBuilderInterface<Path> {
         return this.addRoute("DELETE", path);
     }
 
@@ -59,11 +59,11 @@ export class MockServer implements ServerInterface {
         return this.engine.handle(request);
     }
 
-    private addRoute(method: HttpMethod, path: string): RouteBuilderInterface {
-        const route = new MockRoute(method, path);
+    private addRoute<Path extends string>(method: HttpMethod, path: Path): RouteBuilderInterface<Path> {
+        const route = new MockRoute<Path>(method, path);
 
         this.engine.register(route)
 
-        return new RouteBuilder(route)
+        return new RouteBuilder<Path>(route)
     }
 }

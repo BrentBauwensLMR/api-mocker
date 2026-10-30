@@ -2,38 +2,31 @@ import { createMockServer } from "./index.js";
 
 const mock = createMockServer();
 
-mock.get("/users").reply(200, {
-    users: [
-        { id: "1", name: "Alice" },
-        { id: "2", name: "Bob" },
-    ],
-});
+mock
+    .get("/users/:id")
+    .replyOnce(503, {
+        error: "Even niet beschikbaar",
+    })
+    .replySequence([
+        {
+            status: 202,
+            body: { status: "loading" },
+        },
+        ({ request }) => ({
+            status: 200,
+            body: {
+                id: request.params.id,
+                name: "Alice",
+            },
+        }),
+    ]);
 
-mock.post("/users").reply(201, {
-    id: "3",
-    name: "Charlie",
-});
-
-console.log(
-    "GET:",
-    await mock.handle({
+for (let call = 1; call <= 4; call++) {
+    const response = await mock.handle({
         method: "GET",
-        url: "/users",
-    }),
-);
+        url: "/users/123",
+    });
 
-console.log(
-    "POST:",
-    await mock.handle({
-        method: "POST",
-        url: "/users",
-    }),
-);
+    console.log(`Call ${call}:`, response);
+}
 
-console.log(
-    "Onbekend:",
-    await mock.handle({
-        method: "GET",
-        url: "/unknown",
-    }),
-);

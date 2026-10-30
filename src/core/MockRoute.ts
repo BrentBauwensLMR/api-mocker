@@ -1,8 +1,13 @@
 import type { RouteInterface } from "@/contracts/route.js";
 import type { HttpMethod } from "@/types/http-method.js";
 import type { Response } from "@/types/response.js";
+import { ReplySequence } from "./ReplySequence.js";
+import type { ReplyContext, ReplyDefinition } from "@/types/reply.js";
+import type { PathParams } from "@/types/path-params.js";
+import { extractParams } from "@/utils/extract-params.js";
+import type { Request } from "@/types/request.js";
 
-export class MockRoute implements RouteInterface {
+export class MockRoute<Path extends string> implements RouteInterface<Path> {
     /**
      * The HTTP method for this route
      * example: GET, POST, ...
@@ -21,24 +26,76 @@ export class MockRoute implements RouteInterface {
      */
     private response: Response | null = null;
 
-    constructor(method: HttpMethod, path: string) {
+    private readonly replies = new ReplySequence<ReplyDefinition<Path>>();
+
+    constructor(method: HttpMethod, path: Path) {
         this.method = method;
         this.path = path;
     }
 
-    public matches(method: string, path: string): boolean {
-        return this.method === method && this.path === path;
+    public matches(method: HttpMethod, path: string): boolean {
+        return this.method === method && this.extractParams(path) !== null;
     }
 
     public setResponse(response: Response): void {
         this.response = response;
     }
 
-    public resolve(): Response {
-        if (!this.response) {
-            throw new Error(`No response set for route ${this.method} ${this.path}`);
+    public setReply(reply: ReplyDefinition<Path>): void {
+        this.replies.setFallback(reply);
+    }
+
+    public addReplyOnce(reply: ReplyDefinition<Path>): void {
+        this.replies.addOnce(reply);
+    }
+
+    public setReplySequence(
+        replies: readonly [
+            ReplyDefinition<Path>,
+            ...ReplyDefinition<Path>[],
+        ],
+    ): void {
+        this.replies.setSequence(replies);
+    }
+
+    async resolve(request: Request): Promise<Response> {
+        const url = new URL(request.url, "http://localhost");
+        const params = this.extractParams(url.pathname);
+
+        if (params === null) {
+            throw new Error(
+                `Request does not match ${this.method} ${this.path}`,
+            );
         }
 
-        return this.response;
+        const definition = this.replies.next();
+
+        if (definition === undefined) {
+            throw new Error(
+                `No reply available for ${this.method} ${this.path}`,
+            );
+        }
+
+        const context: ReplyContext<Path> = {
+            request: {
+                ...request,
+                params,
+            },
+        };
+
+        const response = typeof definition === "function"
+            ? await definition(context)
+            : definition;
+
+        return {
+            ...response,
+            type: "http",
+        };
+    }
+
+    private extractParams(path: string): PathParams<Path> | null {
+        const params = extractParams<Path>(path, this.path);
+
+        return params;
     }
 }
