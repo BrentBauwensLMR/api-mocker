@@ -3,6 +3,7 @@ import type { ExecutableRouteInterface, RouteInterface } from "@/contracts/route
 import type { Request } from "@/types/request.js";
 import type { Response } from "@/types/response.js";
 
+/** Evaluates routes in registration order and executes the first match. */
 export class MockEngine<Path extends string> implements EngineInterface {
     private routes: ExecutableRouteInterface[] = [];
 

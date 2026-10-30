@@ -1,5 +1,11 @@
 import type { PathParams } from "@/types/path-params.js";
 
+/**
+ * Matches pathname segments and extracts decoded values from `:name` segments.
+ * Returns null for a mismatch. Trailing slashes are significant.
+ *
+ * @throws If a matched parameter contains invalid percent encoding.
+ */
 export const extractParams = <T extends string>(path: string, routePath: string): PathParams<T> | null => {
     const expectedSegments = routePath.split("/");
     const actualSegments = path.split("/");
