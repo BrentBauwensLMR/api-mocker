@@ -61,7 +61,7 @@ export interface RouteBuilderInterface<Path extends string> {
      * @throws If the supplied sequence is empty at runtime.
      */
     replySequence(
-        replies: readonly [
+        replies: [
             ReplyDefinition<Path>,
             ...ReplyDefinition<Path>[],
         ],

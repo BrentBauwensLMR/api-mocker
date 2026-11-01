@@ -12,7 +12,7 @@ export interface RouteInterface<Path extends string> extends ExecutableRouteInte
     setReply(reply: ReplyDefinition<Path>): void;
     addReplyOnce(reply: ReplyDefinition<Path>): void;
     setReplySequence(
-        replies: readonly [
+        replies: [
             ReplyDefinition<Path>,
             ...ReplyDefinition<Path>[],
         ],

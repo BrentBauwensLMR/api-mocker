@@ -20,13 +20,7 @@ export class MockRoute<Path extends string> implements RouteInterface<Path> {
      */
     private path: string;
 
-    /**
-     * The response for this route
-     * example: { status: 200, body: { message: "OK" } }
-     */
-    private response: Response | null = null;
-
-    private readonly replies = new ReplySequence<ReplyDefinition<Path>>();
+    private replies = new ReplySequence<ReplyDefinition<Path>>();
 
     constructor(method: HttpMethod, path: Path) {
         this.method = method;
@@ -35,10 +29,6 @@ export class MockRoute<Path extends string> implements RouteInterface<Path> {
 
     public matches(method: HttpMethod, path: string): boolean {
         return this.method === method && this.extractParams(path) !== null;
-    }
-
-    public setResponse(response: Response): void {
-        this.response = response;
     }
 
     public setReply(reply: ReplyDefinition<Path>): void {
@@ -50,7 +40,7 @@ export class MockRoute<Path extends string> implements RouteInterface<Path> {
     }
 
     public setReplySequence(
-        replies: readonly [
+        replies: [
             ReplyDefinition<Path>,
             ...ReplyDefinition<Path>[],
         ],

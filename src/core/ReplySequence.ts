@@ -19,7 +19,7 @@ export class ReplySequence<T> {
     }
 
     /** Replaces the sequence and restarts its position; rejects empty input. */
-    setSequence(replies: readonly [T, ...T[]]): void {
+    setSequence(replies: [T, ...T[]]): void {
         if (replies.length === 0) {
             throw new Error("A reply sequence must not be empty");
         }

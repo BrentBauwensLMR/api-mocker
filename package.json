@@ -2,7 +2,18 @@
     "name": "api-mocker",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./node": {
+            "types": "./dist/node.d.ts",
+            "import": "./dist/node.js"
+        }
+    },
     "type": "module",
     "scripts": {
         "build": "tsc && tsc-alias",
@@ -10,6 +21,7 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "demo": "npm run build && node dist/demo.js",
+        "demo:http": "npm run build && node dist/demo-http.js",
         "docs": "typedoc",
         "docs:watch": "typedoc --watch"
     },

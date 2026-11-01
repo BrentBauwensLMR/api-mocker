@@ -2,7 +2,7 @@
 
 A TypeScript library for defining mock API responses with inferred path parameters, and deterministic reply sequences.
 
-The project currently implements a transport-independent core. Requests are passed directly to `mock.handle()`, which returns a plain response description. Creating a mock server does not start an HTTP server or intercept `fetch()` requests.
+The project implements a transport-independent core and a Node HTTP adapter. Call `mock.handle()` directly or attach the adapter to expose the same routes over HTTP. Creating a mock server alone does not open a port or intercept `fetch()` requests.
 
 ## Run locally
 
@@ -44,6 +44,56 @@ console.log(response);
 ```
 
 Each call to `createMockServer()` creates an independent server with its own routes and reply positions.
+
+## Node HTTP adapter
+
+Run the HTTP demo:
+
+```bash
+npm run demo:http
+```
+
+In another terminal, call it repeatedly to see `503`, `202`, then `200`:
+
+```bash
+curl -i http://127.0.0.1:3000/users/123
+```
+
+The demo stops on Ctrl+C. For your own HTTP entrypoint, use:
+
+```ts
+import { createMockServer } from "./index.js";
+import { createNodeAdapter } from "./node.js";
+
+const mock = createMockServer();
+
+mock.get("/users/:id").reply(({ request }) => ({
+    status: 200,
+    body: { id: request.params.id, name: "Alice" },
+}));
+
+const server = await createNodeAdapter(mock).listen({ port: 3000 });
+
+console.log(server.url);
+// When finished: await server.close();
+```
+
+The built package exposes the core through `api-mocker` and the Node adapter through `api-mocker/node`. The core entrypoint does not import the adapter.
+
+`listen()` defaults to port `3000` and host `127.0.0.1`. Use `{ port: 0 }` for an automatically assigned port; `server.url` includes the actual port. Binding failures reject the promise. `close()` waits for active requests and can be called repeatedly. Multiple listeners attached to the same mock share its routes and reply positions.
+
+| Response body | HTTP encoding and default content type |
+| --- | --- |
+| `undefined` | Empty body; no default content type |
+| String | Plain text, `text/plain; charset=utf-8` |
+| `Uint8Array` or Node `Buffer` | Raw bytes, `application/octet-stream` |
+| Other JSON-serializable values, including `null` | Ordinary JSON, `application/json; charset=utf-8` |
+
+Explicit response content types are preserved. The adapter omits bodies for HEAD requests and statuses `204`, `205`, and `304`. HEAD requests still require a matching core route; there is no automatic GET fallback. Final response statuses must be integers from `200` through `599`.
+
+Core errors, invalid response headers/statuses, and JSON serialization failures produce a generic `500` response. Methods outside the core's supported method union receive `501` if Node accepts the request. Request bodies are drained but are not yet passed to callbacks. CORS and automatic preflight handling are not implemented.
+
+The adapter implements `AdapterInterface<NodeHttpContext>`: `handle({ request, response })` can also be attached to an existing Node server. Highfive's `createFacades()` supplies an adapter-scoped `Serializer` implementation. HTTP JSON uses `JSON.stringify()` semantics, without Highfive's type-preserving serialization envelope; clients can use ordinary `response.json()`.
 
 ## Static replies
 
@@ -172,13 +222,13 @@ Responses are plain objects, not Fetch API `Response` instances. Bodies are not 
 
 ## Current scope
 
-Implemented: route registration, required path parameters, static and asynchronous callback replies, one-time replies, reply sequences, and server instance isolation.
+Implemented: route registration, required path parameters, static and asynchronous callback replies, one-time replies, reply sequences, server instance isolation, and the Node HTTP adapter.
 
-Not implemented yet: query/header/body predicates, request bodies in callback context, call counters and stores, delays, history, resets, snapshots, events, SSE, and transport adapters. Additional route helpers such as `.patch()`, `.head()`, `.options()`, and `.any()` are also planned.
+Not implemented yet: query/header/body predicates, request bodies in callback context, call counters and stores, delays, history, resets, snapshots, events, SSE, and Express/Vite/browser adapters. Additional route helpers such as `.patch()`, `.head()`, `.options()`, and `.any()` are also planned.
 
 ## API documentation
 
-Public API comments use TSDoc-style syntax. TypeDoc generates the reference from the exports in `src/index.ts`:
+Public API comments use TSDoc-style syntax. TypeDoc generates the reference from the exports in `src/index.ts` and `src/node.ts`:
 
 ```bash
 npm run docs
@@ -197,6 +247,7 @@ Update this README for usage guides and scenarios. Document method behavior, par
 | Command | Purpose |
 | --- | --- |
 | `npm run demo` | Build and execute `src/demo.ts`. |
+| `npm run demo:http` | Build and start the HTTP demo on port 3000. |
 | `npm run build` | Compile TypeScript and rewrite import aliases for Node. |
 | `npm run typecheck` | Check TypeScript without emitting files. |
 | `npm run lint` | Check code with ESLint. |
