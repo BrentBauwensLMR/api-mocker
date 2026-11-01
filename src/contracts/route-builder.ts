@@ -1,17 +1,25 @@
 import type { HttpStatusCode } from "@/types/http-status-code.js";
 import type {
     ReplyDefinition,
+    ReplyBodyHandler,
     ReplyHandler,
 } from "@/types/reply.js";
 
 /** Configures replies while preserving the route's literal path type. */
 export interface RouteBuilderInterface<Path extends string> {
     /**
+     * Sets a fixed status and a body callback, evaluated for each selected request.
+     * Return the body directly or through a promise; path parameters are inferred.
+     *
+     * @returns This builder for chaining.
+     */
+    reply(status: HttpStatusCode, handler: ReplyBodyHandler<Path>): this;
+    /**
      * Sets the default reply used after one-time replies and sequence items.
      * Calling this again replaces the previous default.
      *
      * @param status - The HTTP response status.
-     * @param body - The response body; no JSON serialization is performed.
+     * @param body - A fixed response value; functions are treated as body callbacks.
      * @returns This builder for chaining.
      */
     reply(status: HttpStatusCode, body?: unknown): this;
@@ -24,6 +32,13 @@ export interface RouteBuilderInterface<Path extends string> {
      */
     reply(handler: ReplyHandler<Path>): this;
 
+    /**
+     * Appends a fixed-status body callback consumed by one matching request.
+     * The callback may be asynchronous. Selection consumes it even if it fails.
+     *
+     * @returns This builder for chaining.
+     */
+    replyOnce(status: HttpStatusCode, handler: ReplyBodyHandler<Path>): this;
     /**
      * Appends a reply consumed by one matching request.
      * One-time replies run in registration order, before sequences and defaults.

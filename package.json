@@ -12,6 +12,10 @@
         "./node": {
             "types": "./dist/node.d.ts",
             "import": "./dist/node.js"
+        },
+        "./vite": {
+            "types": "./dist/vite.d.ts",
+            "import": "./dist/vite.js"
         }
     },
     "type": "module",
@@ -20,8 +24,11 @@
         "typecheck": "tsc --noEmit",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "demo": "npm run build && node dist/demo.js",
-        "demo:http": "npm run build && node dist/demo-http.js",
+        "demo": "npm run demo:core",
+        "demo:core": "npm run build && node demo/core/index.ts",
+        "demo:node": "npm run build && node demo/node/index.ts",
+        "demo:http": "npm run demo:node",
+        "demo:vite": "npm run build && vite demo/vite --config demo/vite/vite.config.ts --host 127.0.0.1",
         "docs": "typedoc",
         "docs:watch": "typedoc --watch"
     },
@@ -37,7 +44,8 @@
         "tsc-alias": "^1.9.9",
         "typedoc": "^0.28.20",
         "typescript": "~6.0.0",
-        "typescript-eslint": "^8.72.1"
+        "typescript-eslint": "^8.72.1",
+        "vite": "^8.3.5"
     },
     "dependencies": {
         "@littlemissrobot/highfive": "^0.3.1"

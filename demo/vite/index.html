@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>api-mocker · Vite demo</title>
+        <style>
+            :root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+            body { max-width: 44rem; margin: 4rem auto; padding: 0 1.5rem; }
+            h1 { letter-spacing: -0.04em; }
+            p { line-height: 1.6; }
+            button { padding: 0.75rem 1.25rem; font: inherit; cursor: pointer; }
+            pre { padding: 1.25rem; background: light-dark(#f3f4f6, #20242b); border-radius: 0.5rem; overflow: auto; }
+        </style>
+    </head>
+    <body>
+        <h1>api-mocker / Vite</h1>
+        <p>Call <code>/api/users/123</code> on this Vite server.</p>
+        <p>Repeated calls return <strong>503 → 202 → 200 → 200…</strong></p>
+        <button id="request" type="button">Fetch user</button>
+        <pre id="result" role="status" aria-live="polite">Ready. Click “Fetch user” to start.</pre>
+        <p>Restart the demo to reset the sequence.</p>
+        <script type="module" src="/main.ts"></script>
+    </body>
+</html>

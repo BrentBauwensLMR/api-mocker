@@ -1,258 +1,107 @@
 # api-mocker
 
-A TypeScript library for defining mock API responses with inferred path parameters, and deterministic reply sequences.
-
-The project implements a transport-independent core and a Node HTTP adapter. Call `mock.handle()` directly or attach the adapter to expose the same routes over HTTP. Creating a mock server alone does not open a port or intercept `fetch()` requests.
-
-## Run locally
-
-Use Node.js 24 and install the project dependencies:
+Typed API mocks with dynamic replies, one-time responses, and reply sequences.
 
 ```bash
-npm install
-npm run demo
+npm install api-mocker
 ```
-
-The examples below can be used in `src/demo.ts`. They import the local source entry point; package publishing and consumer installation are not configured yet.
 
 ## Quick start
 
 ```ts
-import { createMockServer } from "./index.js";
+import { createMockServer } from "api-mocker";
 
 const mock = createMockServer();
 
-mock.get("/users/:id").reply(({ request }) => ({
-    status: 200,
-    body: {
-        id: request.params.id,
-        name: "Alice",
-    },
-}));
-
-const response = await mock.handle({
-    method: "GET",
-    url: "/users/123",
-});
-
-console.log(response);
-// {
-//     type: "http",
-//     status: 200,
-//     body: { id: "123", name: "Alice" },
-// }
-```
-
-Each call to `createMockServer()` creates an independent server with its own routes and reply positions.
-
-## Node HTTP adapter
-
-Run the HTTP demo:
-
-```bash
-npm run demo:http
-```
-
-In another terminal, call it repeatedly to see `503`, `202`, then `200`:
-
-```bash
-curl -i http://127.0.0.1:3000/users/123
-```
-
-The demo stops on Ctrl+C. For your own HTTP entrypoint, use:
-
-```ts
-import { createMockServer } from "./index.js";
-import { createNodeAdapter } from "./node.js";
-
-const mock = createMockServer();
-
-mock.get("/users/:id").reply(({ request }) => ({
-    status: 200,
-    body: { id: request.params.id, name: "Alice" },
-}));
-
-const server = await createNodeAdapter(mock).listen({ port: 3000 });
-
-console.log(server.url);
-// When finished: await server.close();
-```
-
-The built package exposes the core through `api-mocker` and the Node adapter through `api-mocker/node`. The core entrypoint does not import the adapter.
-
-`listen()` defaults to port `3000` and host `127.0.0.1`. Use `{ port: 0 }` for an automatically assigned port; `server.url` includes the actual port. Binding failures reject the promise. `close()` waits for active requests and can be called repeatedly. Multiple listeners attached to the same mock share its routes and reply positions.
-
-| Response body | HTTP encoding and default content type |
-| --- | --- |
-| `undefined` | Empty body; no default content type |
-| String | Plain text, `text/plain; charset=utf-8` |
-| `Uint8Array` or Node `Buffer` | Raw bytes, `application/octet-stream` |
-| Other JSON-serializable values, including `null` | Ordinary JSON, `application/json; charset=utf-8` |
-
-Explicit response content types are preserved. The adapter omits bodies for HEAD requests and statuses `204`, `205`, and `304`. HEAD requests still require a matching core route; there is no automatic GET fallback. Final response statuses must be integers from `200` through `599`.
-
-Core errors, invalid response headers/statuses, and JSON serialization failures produce a generic `500` response. Methods outside the core's supported method union receive `501` if Node accepts the request. Request bodies are drained but are not yet passed to callbacks. CORS and automatic preflight handling are not implemented.
-
-The adapter implements `AdapterInterface<NodeHttpContext>`: `handle({ request, response })` can also be attached to an existing Node server. Highfive's `createFacades()` supplies an adapter-scoped `Serializer` implementation. HTTP JSON uses `JSON.stringify()` semantics, without Highfive's type-preserving serialization envelope; clients can use ordinary `response.json()`.
-
-## Static replies
-
-Use `.reply(status, body)` to configure a default response:
-
-```ts
-mock.get("/users").reply(200, {
-    users: [],
-});
-
-mock.post("/users").reply(201, {
-    id: "123",
+mock.get("/users/:id").reply(200, ({ request }) => ({
+    id: request.params.id,
     name: "Alice",
-});
+}));
+
+const response = await mock.handle({ method: "GET", url: "/users/123" });
 ```
 
-The current route helpers are `.get()`, `.post()`, `.put()`, and `.delete()`. Calling `.reply()` again on the same builder replaces that route's default response.
-
-## Dynamic replies and typed parameters
-
-Required parameters use `:name` segments. Keep the path as a literal so TypeScript can infer parameter names:
+Route parameters are inferred as strings. Body callbacks can be synchronous or asynchronous:
 
 ```ts
-mock.get("/users/:id/actions/:actionId").reply(({ request }) => ({
-    status: 200,
-    body: {
-        userId: request.params.id,
-        actionId: request.params.actionId,
-    },
+mock.get("/profiles/:id").reply(200, async ({ request }) => ({
+    id: request.params.id,
+    name: "Alice",
 }));
 ```
 
-Both parameters are typed as `string`. Accessing an undeclared parameter, such as `request.params.unknown`, is a TypeScript error. A path typed only as `string` falls back to a string-keyed parameter record.
-
-Callbacks can return a response directly or return a promise. They receive the input request with decoded `params`. Return `status`, an optional `body`, and optional `headers`; the core adds `type: "http"`.
+## Routes and replies
 
 ```ts
-mock.get("/profile/:id").reply(async ({ request }) => {
-    const profile = await Promise.resolve({
-        id: request.params.id,
-        name: "Alice",
-    });
+mock.get(path);
+mock.post(path);
+mock.put(path);
+mock.delete(path);
 
-    return {
-        status: 200,
-        headers: { "x-mock": "true" },
-        body: profile,
-    };
-});
+route.reply(status, body?);
+route.reply(status, bodyHandler);
+route.reply(handler);
+route.replyOnce(status, body?);
+route.replyOnce(status, bodyHandler);
+route.replyOnce(handler);
+route.replySequence([responseOrHandler, ...]);
 ```
 
-## One-time replies
-
-Use `.replyOnce()` to consume one reply per matching request:
-
 ```ts
-mock.get("/retry-users")
-    .replyOnce(500, { error: "Server unavailable" })
-    .replyOnce(429, { error: "Too many requests" })
+mock.get("/users")
+    .replyOnce(503, { error: "Unavailable" })
     .reply(200, { users: [] });
-```
 
-The first request returns `500`, the second returns `429`, and all subsequent requests return `200`.
-
-`.replyOnce()` also accepts a synchronous or asynchronous callback. Requests that do not match the route do not consume its replies. Once selected, a one-time reply is consumed even if its callback fails.
-
-## Reply sequences
-
-Use `.replySequence()` with a non-empty array of responses or callbacks:
-
-```ts
 mock.get("/jobs/:id").replySequence([
     { status: 202, body: { status: "pending" } },
-    { status: 202, body: { status: "processing" } },
-    ({ request }) => ({
-        status: 200,
-        body: {
-            id: request.params.id,
-            status: "completed",
-        },
-    }),
+    { status: 200, body: { status: "completed" } },
 ]);
 ```
 
-After the sequence is exhausted, its last item repeats. A repeated callback executes again with the current request.
+One-time replies run first, followed by the sequence, then the default reply. Without a default, the last sequence item repeats.
 
-If `.reply()` is also configured, that default takes over after the last sequence item has been consumed:
+With a status argument, callbacks return only the body. With `.reply(handler)` or `.replyOnce(handler)`, callbacks return the full `{ status, body?, headers? }` response.
+
+## Node HTTP
 
 ```ts
-mock.get("/status")
-    .replySequence([
-        { status: 202, body: { ready: false } },
-        { status: 202, body: { ready: false } },
-    ])
-    .reply(200, { ready: true });
+import { createNodeAdapter } from "api-mocker/node";
+
+const server = await createNodeAdapter(mock).listen({
+    port: 3000,
+    host: "127.0.0.1",
+});
+
+console.log(server.url);
+await server.close();
 ```
 
-This returns `202`, `202`, then `200` for all later requests.
+## Vite
 
-### Selection rules
+```ts
+import { defineConfig } from "vite";
+import { createMockServer } from "api-mocker";
+import { apiMockerPlugin } from "api-mocker/vite";
 
-| Priority | Available reply | Behavior |
-| --- | --- | --- |
-| 1 | One-time replies | Consume in registration order. |
-| 2 | Sequence items | Consume in array order. |
-| 3 | Default reply | Use the response or callback configured by `.reply()`. |
-| 4 | Last sequence item | Repeat it when no default is configured. |
+const mock = createMockServer();
 
-The priority is independent of the order in which `.reply()`, `.replyOnce()`, and `.replySequence()` appear in the chain. Calling `.replySequence()` again replaces the sequence and restarts its position.
+mock.get("/api/users").reply(200, { users: [] });
 
-Positions belong to the registered route. Requests to `/jobs/1` and `/jobs/2` share the same sequence when both match `/jobs/:id`; positions are not tracked per parameter value.
+export default defineConfig({
+    plugins: [apiMockerPlugin(mock, { prefix: "/api" })],
+});
+```
 
-If no reply is available, `handle()` rejects with an error. For example, a route configured only with `.replyOnce()` has no reply left after that item is consumed.
+Call `fetch("/api/users")` from your frontend. The plugin handles `/api` routes on the Vite development server; other paths continue through Vite.
 
-## Request matching and responses
+## Local demos
 
-- Routes are checked in registration order. The first matching route wins, so register specific routes before overlapping parameter routes.
-- Matching uses the HTTP method and pathname. Named parameters match one non-empty path segment.
-- Pathnames are case-sensitive, and trailing slashes are significant.
-- Query parameters and the URL origin do not affect matching.
-- Relative paths are resolved against `http://localhost`; absolute URLs are also accepted.
-- A route miss returns `{ type: "http", status: 404, body: { error: "No matching mock route" } }`.
-- Callback errors and malformed URL or parameter parsing errors reject `handle()`.
-
-Responses are plain objects, not Fetch API `Response` instances. Bodies are not serialized or cloned. Avoid mutating a static response body if it will be reused, or use a callback to construct a fresh body for each request.
-
-## Current scope
-
-Implemented: route registration, required path parameters, static and asynchronous callback replies, one-time replies, reply sequences, server instance isolation, and the Node HTTP adapter.
-
-Not implemented yet: query/header/body predicates, request bodies in callback context, call counters and stores, delays, history, resets, snapshots, events, SSE, and Express/Vite/browser adapters. Additional route helpers such as `.patch()`, `.head()`, `.options()`, and `.any()` are also planned.
-
-## API documentation
-
-Public API comments use TSDoc-style syntax. TypeDoc generates the reference from the exports in `src/index.ts` and `src/node.ts`:
+Requires Node.js 24. Run `npm install`, then:
 
 ```bash
-npm run docs
+npm run demo:core
+npm run demo:node
+npm run demo:vite
 ```
 
-Open `docs/api/index.html` to browse the generated reference. While editing comments, rebuild automatically with:
-
-```bash
-npm run docs:watch
-```
-
-Update this README for usage guides and scenarios. Document method behavior, parameters, and examples beside the public declarations. The generated `docs/api/` directory is ignored by Git.
-
-## Development
-
-| Command | Purpose |
-| --- | --- |
-| `npm run demo` | Build and execute `src/demo.ts`. |
-| `npm run demo:http` | Build and start the HTTP demo on port 3000. |
-| `npm run build` | Compile TypeScript and rewrite import aliases for Node. |
-| `npm run typecheck` | Check TypeScript without emitting files. |
-| `npm run lint` | Check code with ESLint. |
-| `npm run lint:fix` | Apply automatic ESLint fixes, including unused imports and indentation. |
-| `npm run docs` | Generate the API reference. |
-| `npm run docs:watch` | Regenerate the reference as its sources change. |
-
-The core uses [Highfive](https://github.com/Little-Miss-Robot/highfive) for dependency injection. Each server factory call creates a fresh container scope.
+Generate the API reference with `npm run docs`.

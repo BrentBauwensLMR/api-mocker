@@ -12,4 +12,6 @@ export interface ReplyContext<Path extends string> {
 
 export type ReplyHandler<Path extends string> = (context: ReplyContext<Path>) => ReplyResponse | Promise<ReplyResponse>;
 
+export type ReplyBodyHandler<Path extends string, Body = unknown> = (context: ReplyContext<Path>) => Body | Promise<Body>;
+
 export type ReplyDefinition<Path extends string> = ReplyResponse | ReplyHandler<Path>;

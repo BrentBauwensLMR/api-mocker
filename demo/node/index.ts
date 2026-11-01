@@ -1,5 +1,5 @@
-import { createMockServer } from "./index.js";
-import { createNodeAdapter } from "./node.js";
+import { createMockServer } from "api-mocker";
+import { createNodeAdapter } from "api-mocker/node";
 
 const mock = createMockServer();
 

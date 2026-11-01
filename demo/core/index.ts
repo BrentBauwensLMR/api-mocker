@@ -1,4 +1,4 @@
-import { createMockServer } from "./index.js";
+import { createMockServer } from "api-mocker";
 
 const mock = createMockServer();
 

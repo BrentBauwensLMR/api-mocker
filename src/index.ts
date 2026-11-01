@@ -11,6 +11,7 @@ export type { Request } from "@/types/request.js";
 export type { Response } from "@/types/response.js";
 export type {
     ReplyContext,
+    ReplyBodyHandler,
     ReplyDefinition,
     ReplyHandler,
     ReplyResponse,
