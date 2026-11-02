@@ -7,9 +7,9 @@ export class ViteAdapter implements AdapterInterface<ViteAdapterContext> {
     private prefix: string;
     private adapter: AdapterInterface<NodeHttpContext>;
 
-    constructor(http: AdapterInterface<NodeHttpContext>, options: ViteAdapterOptions = {}) {
+    constructor(adapter: AdapterInterface<NodeHttpContext>, options: ViteAdapterOptions = {}) {
+        this.adapter = adapter;
         this.prefix = (options.prefix ?? "/api").replace(/\/+$/, "");
-        this.adapter = http;
 
         if (!this.prefix.startsWith("/")) {
             throw new Error("The mock prefix must be a non-root path such as /api");

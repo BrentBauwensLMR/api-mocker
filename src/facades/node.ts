@@ -1,8 +1,4 @@
-import {
-    DefaultContainer,
-    type Serializer,
-} from "@littlemissrobot/highfive";
-
+import { DefaultContainer, type Serializer} from "@littlemissrobot/highfive";
 import type { MockServer } from "@/core/MockServer.js";
 import { NodeHttpAdapter } from "@/adapters/NodeHttpAdapter.js";
 import { JsonSerializer } from "@/serialization/JsonSerializer.js";
