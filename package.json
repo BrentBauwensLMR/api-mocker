@@ -26,6 +26,7 @@
         "lint:fix": "eslint . --fix",
         "demo": "npm run demo:core",
         "demo:core": "npm run build && node demo/core/index.ts",
+        "demo:fetch": "npm run build && node demo/fetch/index.ts",
         "demo:node": "npm run build && node demo/node/index.ts",
         "demo:http": "npm run demo:node",
         "demo:vite": "npm run build && vite demo/vite --config demo/vite/vite.config.ts --host 127.0.0.1",

@@ -1,6 +1,8 @@
 import type { MockServer } from "./core/MockServer.js";
 import { container } from "./facades/core.js";
 
+export { createFetch } from "./fetch.js";
+
 export type { MockServer };
 export type { ServerInterface } from "@/contracts/server.js";
 export type { RouteBuilderInterface } from "@/contracts/route-builder.js";

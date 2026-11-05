@@ -6,5 +6,5 @@
         "paths": {},
         "lib": ["ES2022", "DOM", "DOM.Iterable"]
     },
-    "include": ["core/**/*.ts", "node/**/*.ts", "vite/**/*.ts"]
+    "include": ["core/**/*.ts", "fetch/**/*.ts", "node/**/*.ts", "vite/**/*.ts"]
 }

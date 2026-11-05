@@ -3,7 +3,7 @@ import { createNodeAdapter } from "api-mocker/node";
 
 const mock = createMockServer();
 
-mock.get("/users/:id")
+mock.get("/users/:id/qddqd")
     .replyOnce(503, { error: "Even niet beschikbaar" })
     .replySequence([
         { status: 202, body: { status: "loading" } },

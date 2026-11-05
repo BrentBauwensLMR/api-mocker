@@ -4,7 +4,7 @@
 
 A lightweight, type-safe API mocking library for TypeScript. Create realistic HTTP responses, simulate failures, and test your frontend without waiting for a backend.
 
-Define your mocks once. Run them directly, through a standalone Node.js server, or inside your Vite development server.
+Define your mocks once. Run them directly, with a mocked fetch function, through a standalone Node.js server, or inside your Vite development server.
 
 ```bash
 npm install api-mocker
@@ -22,6 +22,7 @@ With `api-mocker`, you can:
 - **Write type-safe mocks** — Route parameters are automatically inferred from your paths.
 - **Integrate with Vite** — Mock API requests directly inside your existing development server.
 - **Use the same mocks in tests** — Execute requests without starting an HTTP server.
+- **Use a mocked fetch** — Read mock responses with the familiar Fetch API.
 
 No separate backend project required.
 
@@ -149,6 +150,34 @@ console.log(`Mock API running at ${server.url}`);
 Your mocked API is now available at `http://127.0.0.1:3000`.
 
 The adapter also provides `server.close()` for cleanup.
+
+## Use a mocked fetch
+
+`createFetch(mock)` returns a function with the same call signature as `globalThis.fetch`, bound to your mock server.
+
+```ts
+import { createMockServer, createFetch } from "api-mocker";
+
+const mock = createMockServer();
+
+mock.get("/users/:id").reply(200, async ({ request }) => ({
+  id: request.params.id,
+  name: "Alice",
+}));
+
+const fetch = createFetch(mock);
+
+const response = await fetch("/users/123");
+const user = await response.json();
+
+console.log(response.status); // 200
+console.log(response.ok);     // true
+console.log(user);            // { id: "123", name: "Alice" }
+```
+
+Accepts a URL string, `URL`, or `Request`, with optional request options. Returns a standard `Response` with `.json()`, `.text()`, `.status`, `.ok`, and `.headers`. HTTP error statuses such as `404` and `503` resolve to responses with `ok: false`.
+
+Calls run directly against your mocks without starting an HTTP server. Use the returned function wherever you want mocked requests; the global fetch function remains available.
 
 ## Test without starting a server
 
@@ -377,6 +406,7 @@ Explore the included examples:
 npm install
 
 npm run demo:core
+npm run demo:fetch
 npm run demo:node
 npm run demo:vite
 ```

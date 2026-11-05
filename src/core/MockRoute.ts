@@ -53,17 +53,13 @@ export class MockRoute<Path extends string> implements RouteInterface<Path> {
         const params = this.extractParams(url.pathname);
 
         if (params === null) {
-            throw new Error(
-                `Request does not match ${this.method} ${this.path}`,
-            );
+            throw new Error(`Request does not match ${this.method} ${this.path}`);
         }
 
         const definition = this.replies.next();
 
         if (definition === undefined) {
-            throw new Error(
-                `No reply available for ${this.method} ${this.path}`,
-            );
+            throw new Error(`No reply available for ${this.method} ${this.path}`);
         }
 
         const context: ReplyContext<Path> = {
